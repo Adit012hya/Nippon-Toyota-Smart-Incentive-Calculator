@@ -127,23 +127,41 @@ button, input, select {
   color: var(--color-primary);
 }
 
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: var(--color-primary);
-  color: #fff;
-  font-weight: 800;
-  font-size: 0.85rem;
+/* Matches parent surface so transparent PNG blends cleanly */
+.brand-logo-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  border-radius: 8px;
+  background: var(--color-surface);
 }
 
-.brand-mark-lg {
-  width: 56px;
-  height: 56px;
-  font-size: 1.1rem;
+.brand-logo-wrap--header {
+  padding: 6px 10px;
+}
+
+.brand-logo-wrap--login {
+  padding: 8px 14px;
   margin: 0 auto 1rem;
+  width: fit-content;
+}
+
+.brand-logo {
+  height: 52px;
+  width: auto;
+  max-width: 200px;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
+}
+
+.brand-logo-lg {
+  height: 72px;
+  width: auto;
+  max-width: 300px;
+  object-fit: contain;
+  display: block;
 }
 
 .app-main {

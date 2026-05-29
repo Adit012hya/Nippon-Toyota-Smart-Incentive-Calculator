@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { BrandLogo } from '../components/layout/BrandLogo';
 import { ErrorAlert, LoadingSpinner } from '../components/ui/StatusMessages';
 
 export function LoginPage() {
@@ -35,11 +36,9 @@ export function LoginPage() {
     <div className="login-page">
       <div className="login-card">
         <div className="login-brand">
-          <span className="brand-mark brand-mark-lg" aria-hidden="true">
-            NT
-          </span>
-          <h1>Smart Incentive Calculator</h1>
-          <p>Sign in with your Nippon Toyota account</p>
+          <BrandLogo variant="login" />
+          <h1>Incentive Hub</h1>
+          <p>Sign in with your account</p>
         </div>
 
         {initializing && (

@@ -1,5 +1,6 @@
 import { getDisplayName, getEmployeeIdLabel } from '../../lib/profileDisplay';
 import type { Profile } from '../../types';
+import { BrandLogo } from './BrandLogo';
 
 interface Props {
   profile: Profile;
@@ -14,10 +15,9 @@ export function AppHeader({ profile, onSignOut }: Props) {
   return (
     <header className="app-header">
       <div className="header-brand">
-        <span className="brand-mark" aria-hidden="true">NT</span>
+        <BrandLogo variant="header" />
         <div>
-          <h1>Smart Incentive Calculator</h1>
-          <p className="header-subtitle">Nippon Toyota</p>
+          <h1>Incentive Hub</h1>
         </div>
       </div>
       <div className="header-actions">
