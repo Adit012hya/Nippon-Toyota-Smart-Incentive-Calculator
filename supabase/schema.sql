@@ -8,10 +8,12 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- ── Profiles ────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.profiles (
-  id         UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email      TEXT NOT NULL,
-  role       TEXT NOT NULL CHECK (role IN ('admin', 'sales_officer')),
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  id          UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email       TEXT NOT NULL,
+  full_name   TEXT NOT NULL DEFAULT '',
+  employee_id TEXT NOT NULL DEFAULT '',
+  role        TEXT NOT NULL CHECK (role IN ('admin', 'sales_officer')),
+  created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;

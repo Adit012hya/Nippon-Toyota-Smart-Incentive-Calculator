@@ -3,13 +3,14 @@ import { useAuth } from '../../hooks/useAuth';
 import { useCarModels } from '../../hooks/useCarModels';
 import { useIncentiveSlabs } from '../../hooks/useIncentiveSlabs';
 import { useSalesEntries } from '../../hooks/useSalesEntries';
+import { useToast } from '../../context/ToastContext';
 import { calculateIncentive } from '../../lib/incentive';
+import { ModelSelector } from './ModelSelector';
 import { IncentiveTracker } from './IncentiveTracker';
 import {
   EmptyState,
   ErrorAlert,
   LoadingSpinner,
-  SuccessAlert,
 } from '../ui/StatusMessages';
 
 const MONTHS = [
@@ -23,6 +24,7 @@ const defaultYear = currentDate.getFullYear();
 
 export function SalesEntryForm() {
   const { profile } = useAuth();
+  const { showToast } = useToast();
   const { models, loading: modelsLoading, error: modelsError } = useCarModels();
   const { slabs, loading: slabsLoading, error: slabsError } = useIncentiveSlabs();
   const {
@@ -36,8 +38,8 @@ export function SalesEntryForm() {
 
   const [month, setMonth] = useState(defaultMonth);
   const [year, setYear] = useState(defaultYear);
+  const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
   const [unitMap, setUnitMap] = useState<Record<string, number>>({});
-  const [success, setSuccess] = useState<string | null>(null);
 
   const years = useMemo(() => {
     const list: number[] = [];
@@ -45,22 +47,33 @@ export function SalesEntryForm() {
     return list;
   }, []);
 
+  const selectedModels = useMemo(
+    () => models.filter((m) => selectedModelIds.includes(m.id)),
+    [models, selectedModelIds]
+  );
+
   useEffect(() => {
+    setSelectedModelIds([]);
+    setUnitMap({});
     void fetchEntries(month, year);
   }, [month, year, fetchEntries]);
 
-  useEffect(() => {
-    const map: Record<string, number> = {};
-    for (const model of models) {
-      const existing = entries.find((e) => e.car_model_id === model.id);
-      map[model.id] = existing?.units_sold ?? 0;
-    }
-    setUnitMap(map);
-  }, [models, entries]);
+  const handleModelsConfirm = (ids: string[]) => {
+    setSelectedModelIds(ids);
+    setUnitMap((prev) => {
+      const next: Record<string, number> = {};
+      for (const id of ids) {
+        const saved = entries.find((e) => e.car_model_id === id);
+        next[id] = prev[id] ?? saved?.units_sold ?? 0;
+      }
+      return next;
+    });
+  };
 
   const totalUnits = useMemo(
-    () => Object.values(unitMap).reduce((sum, n) => sum + (n || 0), 0),
-    [unitMap]
+    () =>
+      selectedModelIds.reduce((sum, id) => sum + (unitMap[id] ?? 0), 0),
+    [selectedModelIds, unitMap]
   );
 
   const incentiveResult = useMemo(
@@ -71,14 +84,16 @@ export function SalesEntryForm() {
   const handleUnitChange = (modelId: string, value: string) => {
     const parsed = Math.max(0, parseInt(value, 10) || 0);
     setUnitMap((prev) => ({ ...prev, [modelId]: parsed }));
-    setSuccess(null);
   };
 
   const handleSave = async () => {
-    setSuccess(null);
-    const ok = await saveEntries(month, year, unitMap);
+    if (selectedModelIds.length === 0) {
+      showToast('Select at least one vehicle before saving.');
+      return;
+    }
+    const ok = await saveEntries(month, year, unitMap, selectedModelIds);
     if (ok) {
-      setSuccess(`Sales for ${MONTHS[month - 1]} ${year} saved successfully.`);
+      showToast(`Sales for ${MONTHS[month - 1]} ${year} saved successfully.`);
     }
   };
 
@@ -89,8 +104,8 @@ export function SalesEntryForm() {
     <div className="officer-layout">
       <section className="panel sales-panel">
         <div className="panel-header">
-          <h2>Monthly Sales Entry</h2>
-          <p>Enter units sold per model. Incentives update in real time.</p>
+          <h2>Enter sales</h2>
+          <p>Select vehicles sold this month, then enter unit counts.</p>
         </div>
 
         <div className="month-picker">
@@ -122,7 +137,6 @@ export function SalesEntryForm() {
         </div>
 
         {error && <ErrorAlert message={error} />}
-        {success && <SuccessAlert message={success} />}
 
         {loading ? (
           <LoadingSpinner message="Loading sales data…" />
@@ -133,43 +147,62 @@ export function SalesEntryForm() {
           />
         ) : (
           <>
-            <div className="sales-grid">
-              {models.map((model) => (
-                <div key={model.id} className="sales-row">
-                  <div className="model-info">
-                    <strong>{model.model_name}</strong>
-                    <span className="model-meta">
-                      {model.base_suffix} · {model.variant}
-                    </span>
-                  </div>
-                  <label className="units-input-label">
-                    Units sold
-                    <input
-                      type="number"
-                      min={0}
-                      value={unitMap[model.id] ?? 0}
-                      onChange={(e) => handleUnitChange(model.id, e.target.value)}
-                    />
-                  </label>
-                </div>
-              ))}
+            <div className="model-select-section">
+              <ModelSelector
+                models={models}
+                selectedIds={selectedModelIds}
+                onConfirm={handleModelsConfirm}
+              />
             </div>
 
-            <div className="panel-actions">
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={() => void handleSave()}
-                disabled={saving}
-              >
-                {saving ? 'Saving…' : `Save ${MONTHS[month - 1]} ${year}`}
-              </button>
-            </div>
+            {selectedModels.length > 0 ? (
+              <>
+                <h3 className="selected-models-heading">Selected vehicles</h3>
+                <div className="sales-grid">
+                  {selectedModels.map((model) => (
+                    <div key={model.id} className="sales-row">
+                      <div className="model-info">
+                        <strong>{model.model_name}</strong>
+                        <span className="model-meta">
+                          {model.base_suffix} · {model.variant}
+                        </span>
+                      </div>
+                      <label className="units-input-label">
+                        Units sold
+                        <input
+                          type="number"
+                          min={0}
+                          value={unitMap[model.id] ?? 0}
+                          onChange={(e) =>
+                            handleUnitChange(model.id, e.target.value)
+                          }
+                        />
+                      </label>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="panel-actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => void handleSave()}
+                    disabled={saving}
+                  >
+                    {saving ? 'Saving…' : `Save ${MONTHS[month - 1]} ${year}`}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <p className="muted model-select-hint">
+                Click &quot;Select model(s)&quot; to choose vehicles for this month.
+              </p>
+            )}
           </>
         )}
       </section>
 
-      {!slabsLoading && slabs.length > 0 && (
+      {!slabsLoading && slabs.length > 0 && selectedModelIds.length > 0 && (
         <IncentiveTracker result={incentiveResult} />
       )}
     </div>

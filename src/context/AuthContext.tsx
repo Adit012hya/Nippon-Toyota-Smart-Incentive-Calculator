@@ -8,6 +8,7 @@ import {
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { fetchProfileById } from '../lib/profiles';
 import type { Profile, UserRole } from '../types';
 
 interface AuthContextValue {
@@ -55,17 +56,7 @@ function profileErrorMessage(err: unknown): string {
 }
 
 async function fetchProfile(userId: string): Promise<Profile> {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, email, role')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (error) throw error;
-  if (!data) {
-    throw new Error('No profile found for this account.');
-  }
-  return data as Profile;
+  return fetchProfileById(userId);
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {

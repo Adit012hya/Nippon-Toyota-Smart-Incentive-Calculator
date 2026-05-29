@@ -54,14 +54,14 @@ ORDER BY u.created_at;
 
 -- 5. Create profile rows for your users (edit emails/roles, then run)
 -- Replace emails below with the ones you created in Authentication → Users
-INSERT INTO public.profiles (id, email, role)
-SELECT u.id, u.email, 'admin'
+INSERT INTO public.profiles (id, email, full_name, employee_id, role)
+SELECT u.id, u.email, 'Admin User', 'NT-0001', 'admin'
 FROM auth.users u
 WHERE u.email = 'admin@nippon-toyota.com'
   AND NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = u.id);
 
-INSERT INTO public.profiles (id, email, role)
-SELECT u.id, u.email, 'sales_officer'
+INSERT INTO public.profiles (id, email, full_name, employee_id, role)
+SELECT u.id, u.email, 'John Mathew', 'NT-1001', 'sales_officer'
 FROM auth.users u
 WHERE u.email = 'officer@nippon-toyota.com'
   AND NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = u.id);

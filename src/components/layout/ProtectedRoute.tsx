@@ -1,6 +1,8 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { ToastProvider } from '../../context/ToastContext';
 import { AppHeader } from './AppHeader';
+import { PortalNav } from './PortalNav';
 import { LoadingSpinner } from '../ui/StatusMessages';
 
 interface Props {
@@ -27,16 +29,19 @@ export function ProtectedRoute({ allowedRole }: Props) {
     return <Navigate to={redirect} replace />;
   }
 
-  return (
+  const shell = (
     <div className="app-shell">
-      <AppHeader
-        email={profile.email}
-        role={profile.role}
-        onSignOut={() => void signOut()}
-      />
+      <AppHeader profile={profile} onSignOut={() => void signOut()} />
+      <PortalNav role={profile.role} />
       <main className="app-main">
         <Outlet />
       </main>
     </div>
   );
+
+  if (allowedRole === 'sales_officer') {
+    return <ToastProvider>{shell}</ToastProvider>;
+  }
+
+  return shell;
 }

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useIncentiveSlabs } from '../../hooks/useIncentiveSlabs';
 import { validateSlabs } from '../../lib/slabValidation';
-import { formatCurrency, formatSlabRange } from '../../lib/incentive';
 import type { SlabDraft } from '../../types';
 import {
   EmptyState,
@@ -99,8 +98,6 @@ export function IncentiveSlabManager() {
       setValidationErrors([]);
     }
   };
-
-  const previewSlabs = sortedDrafts.map((s, i) => ({ ...s, order: i + 1 }));
 
   return (
     <section className="panel">
@@ -226,32 +223,6 @@ export function IncentiveSlabManager() {
           </div>
         </>
       )}
-
-      <div className="slab-preview">
-        <h3>Live preview</h3>
-        {previewSlabs.length === 0 ? (
-          <p className="muted">Add slabs to see a preview.</p>
-        ) : (
-          <div className="table-wrap">
-            <table className="data-table preview-table">
-              <thead>
-                <tr>
-                  <th>Units sold</th>
-                  <th>Payout per car</th>
-                </tr>
-              </thead>
-              <tbody>
-                {previewSlabs.map((slab, i) => (
-                  <tr key={slab.id ?? `preview-${i}`}>
-                    <td>{formatSlabRange(slab.min_units, slab.max_units)}</td>
-                    <td>{formatCurrency(slab.payout_per_car)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
     </section>
   );
 }
