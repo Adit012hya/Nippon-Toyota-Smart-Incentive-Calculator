@@ -55,18 +55,6 @@ export function IncentiveSlabManager() {
     setSuccess(null);
   };
 
-  const moveSlab = (index: number, direction: 'up' | 'down') => {
-    const sorted = [...sortedDrafts];
-    const target = direction === 'up' ? index - 1 : index + 1;
-    if (target < 0 || target >= sorted.length) return;
-
-    const tempOrder = sorted[index].order;
-    sorted[index] = { ...sorted[index], order: sorted[target].order };
-    sorted[target] = { ...sorted[target], order: tempOrder };
-    setDrafts(sorted);
-    setValidationErrors([]);
-  };
-
   const addSlab = () => {
     const sorted = [...sortedDrafts];
     const last = sorted[sorted.length - 1];
@@ -100,12 +88,7 @@ export function IncentiveSlabManager() {
   };
 
   return (
-    <section className="panel">
-      <div className="panel-header">
-        <h2>Incentive Slab Configuration</h2>
-        <p>Define global tiered payout slabs. Ranges must be contiguous and non-overlapping.</p>
-      </div>
-
+    <>
       {error && <ErrorAlert message={error} onRetry={() => void fetchSlabs()} />}
       {success && <SuccessAlert message={success} />}
       {validationErrors.length > 0 && (
@@ -179,24 +162,6 @@ export function IncentiveSlabManager() {
                 <div className="slab-actions">
                   <button
                     type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => moveSlab(index, 'up')}
-                    disabled={index === 0}
-                    aria-label="Move up"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm"
-                    onClick={() => moveSlab(index, 'down')}
-                    disabled={index === sortedDrafts.length - 1}
-                    aria-label="Move down"
-                  >
-                    ↓
-                  </button>
-                  <button
-                    type="button"
                     className="btn btn-danger btn-sm"
                     onClick={() => removeSlab(index)}
                     disabled={sortedDrafts.length <= 1}
@@ -223,6 +188,6 @@ export function IncentiveSlabManager() {
           </div>
         </>
       )}
-    </section>
+    </>
   );
 }

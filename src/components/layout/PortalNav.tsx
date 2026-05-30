@@ -1,5 +1,7 @@
 import { NavLink } from 'react-router-dom';
-import type { UserRole } from '../../types';
+import { useAuth } from '../../hooks/useAuth';
+import type { Profile, UserRole } from '../../types';
+import { UserProfileWidget } from './UserProfileWidget';
 
 interface NavItem {
   to: string;
@@ -20,25 +22,30 @@ const OFFICER_NAV: NavItem[] = [
 
 interface Props {
   role: UserRole;
+  profile: Profile;
 }
 
-export function PortalNav({ role }: Props) {
+export function PortalNav({ role, profile }: Props) {
+  const { signOut } = useAuth();
   const items = role === 'admin' ? ADMIN_NAV : OFFICER_NAV;
 
   return (
     <nav className="portal-nav" aria-label="Main navigation">
-      {items.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.end}
-          className={({ isActive }) =>
-            `portal-nav-link${isActive ? ' portal-nav-link-active' : ''}`
-          }
-        >
-          {item.label}
-        </NavLink>
-      ))}
+      <div className="portal-nav-links">
+        {items.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            className={({ isActive }) =>
+              `portal-nav-link${isActive ? ' portal-nav-link-active' : ''}`
+            }
+          >
+            {item.label}
+          </NavLink>
+        ))}
+      </div>
+      <UserProfileWidget profile={profile} onSignOut={signOut} />
     </nav>
   );
 }

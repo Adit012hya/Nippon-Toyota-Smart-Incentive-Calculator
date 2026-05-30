@@ -76,12 +76,7 @@ export function CarModelManager() {
   };
 
   return (
-    <section className="panel">
-      <div className="panel-header">
-        <h2>Car Model Management</h2>
-        <p>Add, edit, and remove active car models for sales tracking.</p>
-      </div>
-
+    <>
       {(error || actionError) && (
         <ErrorAlert
           message={actionError ?? error ?? ''}
@@ -207,6 +202,6 @@ export function CarModelManager() {
           </table>
         </div>
       )}
-    </section>
+    </>
   );
 }

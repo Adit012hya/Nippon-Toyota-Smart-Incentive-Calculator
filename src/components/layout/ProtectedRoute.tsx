@@ -34,7 +34,7 @@ export function ProtectedRoute({ allowedRole }: Props) {
     <div className="app-shell">
       <AppHeader profile={profile} onSignOut={() => void signOut()} />
       <div className="app-body">
-        <PortalNav role={profile.role} />
+        <PortalNav role={profile.role} profile={profile} />
         <main className="app-main">
           <Outlet />
         </main>
