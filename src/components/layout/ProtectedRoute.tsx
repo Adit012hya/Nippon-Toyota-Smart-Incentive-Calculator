@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { ToastProvider } from '../../context/ToastContext';
+import { OfficerSalesDraftProvider } from '../../context/OfficerSalesDraftContext';
 import { AppHeader } from './AppHeader';
 import { PortalNav } from './PortalNav';
 import { LoadingSpinner } from '../ui/StatusMessages';
@@ -40,7 +41,11 @@ export function ProtectedRoute({ allowedRole }: Props) {
   );
 
   if (allowedRole === 'sales_officer') {
-    return <ToastProvider>{shell}</ToastProvider>;
+    return (
+      <ToastProvider>
+        <OfficerSalesDraftProvider>{shell}</OfficerSalesDraftProvider>
+      </ToastProvider>
+    );
   }
 
   return shell;

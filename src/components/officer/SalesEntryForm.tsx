@@ -1,18 +1,18 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useAuth } from '../../hooks/useAuth';
+import { useOfficerSalesDraft } from '../../context/OfficerSalesDraftContext';
 import { useCarModels } from '../../hooks/useCarModels';
 import { useIncentiveSlabs } from '../../hooks/useIncentiveSlabs';
 import { useSalesEntries } from '../../hooks/useSalesEntries';
 import { useToast } from '../../context/ToastContext';
 import { calculateIncentive } from '../../lib/incentive';
 import {
-  clampMonthForYear,
   formatPeriod,
   getAvailableMonths,
-  getCurrentPeriod,
 } from '../../lib/salesPeriod';
 import { ModelSelector } from './ModelSelector';
 import { YearSelect } from './YearSelect';
+import { UnitsSoldInput } from './UnitsSoldInput';
 import { IncentiveTracker } from './IncentiveTracker';
 import {
   EmptyState,
@@ -20,26 +20,30 @@ import {
   LoadingSpinner,
 } from '../ui/StatusMessages';
 
-const { year: defaultYear, month: defaultMonth } = getCurrentPeriod();
-
 export function SalesEntryForm() {
   const { profile } = useAuth();
   const { showToast } = useToast();
+  const {
+    month,
+    year,
+    selectedModelIds,
+    unitMap,
+    setMonth,
+    setYear,
+    confirmModels,
+    setUnitForModel,
+    clearDraft,
+  } = useOfficerSalesDraft();
+
   const { models, loading: modelsLoading, error: modelsError } = useCarModels();
   const { slabs, loading: slabsLoading, error: slabsError } = useIncentiveSlabs();
   const {
-    entries,
     loading: entriesLoading,
     saving,
     error: entriesError,
     fetchEntries,
     saveEntries,
   } = useSalesEntries(profile?.id);
-
-  const [month, setMonth] = useState(defaultMonth);
-  const [year, setYear] = useState(defaultYear);
-  const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
-  const [unitMap, setUnitMap] = useState<Record<string, number>>({});
 
   const availableMonths = getAvailableMonths(year);
 
@@ -49,30 +53,8 @@ export function SalesEntryForm() {
   );
 
   useEffect(() => {
-    setMonth((current) => clampMonthForYear(current, year));
-  }, [year]);
-
-  useEffect(() => {
-    setSelectedModelIds([]);
-    setUnitMap({});
     void fetchEntries(month, year);
   }, [month, year, fetchEntries]);
-
-  const handleYearChange = (newYear: number) => {
-    setYear(newYear);
-  };
-
-  const handleModelsConfirm = (ids: string[]) => {
-    setSelectedModelIds(ids);
-    setUnitMap((prev) => {
-      const next: Record<string, number> = {};
-      for (const id of ids) {
-        const saved = entries.find((e) => e.car_model_id === id);
-        next[id] = prev[id] ?? saved?.units_sold ?? 0;
-      }
-      return next;
-    });
-  };
 
   const totalUnits = useMemo(
     () =>
@@ -85,11 +67,6 @@ export function SalesEntryForm() {
     [totalUnits, slabs]
   );
 
-  const handleUnitChange = (modelId: string, value: string) => {
-    const parsed = Math.max(0, parseInt(value, 10) || 0);
-    setUnitMap((prev) => ({ ...prev, [modelId]: parsed }));
-  };
-
   const handleSave = async () => {
     if (selectedModelIds.length === 0) {
       showToast('Select at least one vehicle before saving.');
@@ -99,6 +76,11 @@ export function SalesEntryForm() {
     if (ok) {
       showToast(`Sales for ${formatPeriod(month, year)} saved successfully.`);
     }
+  };
+
+  const handleClear = () => {
+    clearDraft();
+    showToast('Selection and entries cleared.');
   };
 
   const loading = modelsLoading || slabsLoading || entriesLoading;
@@ -134,7 +116,7 @@ export function SalesEntryForm() {
             <YearSelect
               id="year-select"
               value={year}
-              onChange={handleYearChange}
+              onChange={setYear}
             />
           </div>
         </div>
@@ -150,12 +132,21 @@ export function SalesEntryForm() {
           />
         ) : (
           <>
-            <div className="model-select-section">
+            <div className="model-select-section model-select-row">
               <ModelSelector
                 models={models}
                 selectedIds={selectedModelIds}
-                onConfirm={handleModelsConfirm}
+                onConfirm={confirmModels}
               />
+              {(selectedModelIds.length > 0 || Object.keys(unitMap).length > 0) && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-clear-draft"
+                  onClick={handleClear}
+                >
+                  Clear selection &amp; entries
+                </button>
+              )}
             </div>
 
             {selectedModels.length > 0 ? (
@@ -172,13 +163,10 @@ export function SalesEntryForm() {
                       </div>
                       <label className="units-input-label">
                         Units sold
-                        <input
-                          type="number"
-                          min={0}
+                        <UnitsSoldInput
+                          modelId={model.id}
                           value={unitMap[model.id] ?? 0}
-                          onChange={(e) =>
-                            handleUnitChange(model.id, e.target.value)
-                          }
+                          onChange={setUnitForModel}
                         />
                       </label>
                     </div>
