@@ -305,31 +305,112 @@ input:focus, select:focus {
 .month-picker {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1.25rem;
   flex-wrap: wrap;
   margin-bottom: 1.25rem;
 }
 
-.month-picker label {
+.period-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.period-field label {
   font-size: 0.85rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
-.month-picker select {
+.period-select,
+.year-select-trigger {
+  min-width: 120px;
+  padding: 0.6rem 2rem 0.6rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #fff;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  text-align: left;
+}
+
+.period-select {
   width: auto;
   min-width: 140px;
+  appearance: auto;
+  cursor: pointer;
 }
 
-.month-picker select.year-select-scroll {
+/* Custom year dropdown — overlay, does not shift layout */
+.year-select {
+  position: relative;
+  display: inline-block;
+}
+
+.year-select-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   min-width: 100px;
-  max-height: 12rem;
+  cursor: pointer;
+  font-family: inherit;
 }
 
-/* Scrollable year list on browsers that support select sizing */
-@supports (appearance: base-select) {
-  .month-picker select.year-select-scroll {
-    overflow-y: auto;
-  }
+.year-select-trigger:hover {
+  border-color: #cbd5e1;
+}
+
+.year-select-chevron {
+  font-size: 0.65rem;
+  color: var(--color-muted);
+  pointer-events: none;
+}
+
+.year-select-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 100;
+  min-width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.year-select-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.year-select-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.75rem;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: center;
+}
+
+.year-select-option:hover {
+  background: #f1f5f9;
+}
+
+.year-select-option-active {
+  background: #fee2e2;
+  color: var(--color-primary);
+  font-weight: 600;
 }
 
 /* ── Buttons ────────────────────────────────────────────── */

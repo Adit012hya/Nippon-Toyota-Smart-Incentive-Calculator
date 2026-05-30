@@ -13,11 +13,11 @@ export function getCurrentPeriod() {
   };
 }
 
-/** Years from current year down to MIN_SALES_YEAR (newest first). */
+/** Years from MIN_SALES_YEAR through current year (ascending). */
 export function getAvailableYears(minYear = MIN_SALES_YEAR): number[] {
   const { year: currentYear } = getCurrentPeriod();
   const years: number[] = [];
-  for (let y = currentYear; y >= minYear; y--) years.push(y);
+  for (let y = minYear; y <= currentYear; y++) years.push(y);
   return years;
 }
 

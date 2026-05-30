@@ -9,10 +9,10 @@ import {
   clampMonthForYear,
   formatPeriod,
   getAvailableMonths,
-  getAvailableYears,
   getCurrentPeriod,
 } from '../../lib/salesPeriod';
 import { ModelSelector } from './ModelSelector';
+import { YearSelect } from './YearSelect';
 import { IncentiveTracker } from './IncentiveTracker';
 import {
   EmptyState,
@@ -41,7 +41,6 @@ export function SalesEntryForm() {
   const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
   const [unitMap, setUnitMap] = useState<Record<string, number>>({});
 
-  const years = getAvailableYears();
   const availableMonths = getAvailableMonths(year);
 
   const selectedModels = useMemo(
@@ -114,32 +113,30 @@ export function SalesEntryForm() {
         </div>
 
         <div className="month-picker">
-          <label htmlFor="month-select">Month</label>
-          <select
-            id="month-select"
-            value={month}
-            onChange={(e) => setMonth(parseInt(e.target.value, 10))}
-          >
-            {availableMonths.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+          <div className="period-field">
+            <label htmlFor="month-select">Month</label>
+            <select
+              id="month-select"
+              className="period-select"
+              value={month}
+              onChange={(e) => setMonth(parseInt(e.target.value, 10))}
+            >
+              {availableMonths.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <label htmlFor="year-select">Year</label>
-          <select
-            id="year-select"
-            className="year-select-scroll"
-            value={year}
-            onChange={(e) => handleYearChange(parseInt(e.target.value, 10))}
-          >
-            {years.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
+          <div className="period-field">
+            <label htmlFor="year-select">Year</label>
+            <YearSelect
+              id="year-select"
+              value={year}
+              onChange={handleYearChange}
+            />
+          </div>
         </div>
 
         {error && <ErrorAlert message={error} />}
