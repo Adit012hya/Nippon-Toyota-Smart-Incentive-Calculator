@@ -33,10 +33,12 @@ export function ProtectedRoute({ allowedRole }: Props) {
   const shell = (
     <div className="app-shell">
       <AppHeader profile={profile} onSignOut={() => void signOut()} />
-      <PortalNav role={profile.role} />
-      <main className="app-main">
-        <Outlet />
-      </main>
+      <div className="app-body">
+        <PortalNav role={profile.role} />
+        <main className="app-main">
+          <Outlet />
+        </main>
+      </div>
     </div>
   );
 
