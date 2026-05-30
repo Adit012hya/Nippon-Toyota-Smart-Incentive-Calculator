@@ -1,60 +1,48 @@
-import { supabase } from './supabase';
+import { requireSupabase } from './supabase';
 import type { Profile } from '../types';
 
-function isMissingColumnError(err: unknown): boolean {
-  const msg =
-    err && typeof err === 'object' && 'message' in err
-      ? String((err as { message: string }).message).toLowerCase()
-      : '';
-  return (
-    msg.includes('full_name') ||
-    msg.includes('employee_id') ||
-    msg.includes('does not exist')
-  );
-}
+const PROFILE_FIELDS_ENABLED =
+  import.meta.env.VITE_ENABLE_PROFILE_FIELDS === 'true';
 
-/** Load profile; works before and after add-profile-fields.sql migration */
+/**
+ * Load profile. By default only queries id, email, role (no 400 if optional
+ * columns are missing). Set VITE_ENABLE_PROFILE_FIELDS=true in .env after
+ * running supabase/add-profile-fields.sql.
+ */
 export async function fetchProfileById(userId: string): Promise<Profile> {
-  const extended = await supabase
+  const supabase = requireSupabase();
+
+  const selectFields = PROFILE_FIELDS_ENABLED
+    ? 'id, email, role, full_name, employee_id'
+    : 'id, email, role';
+
+  const { data, error } = await supabase
     .from('profiles')
-    .select('id, email, role, full_name, employee_id')
+    .select(selectFields)
     .eq('id', userId)
     .maybeSingle();
 
-  if (!extended.error && extended.data) {
-    return {
-      id: extended.data.id,
-      email: extended.data.email,
-      role: extended.data.role,
-      full_name: extended.data.full_name ?? '',
-      employee_id: extended.data.employee_id ?? '',
-    };
+  if (error) throw error;
+  if (!data) {
+    throw new Error('No profile found for this account.');
   }
 
-  if (isMissingColumnError(extended.error)) {
-    const basic = await supabase
-      .from('profiles')
-      .select('id, email, role')
-      .eq('id', userId)
-      .maybeSingle();
+  const row = data as {
+    id: string;
+    email: string;
+    role: Profile['role'];
+    full_name?: string;
+    employee_id?: string;
+  };
 
-    if (basic.error) throw basic.error;
-    if (!basic.data) {
-      throw new Error('No profile found for this account.');
-    }
-
-    return {
-      id: basic.data.id,
-      email: basic.data.email,
-      role: basic.data.role,
-      full_name: '',
-      employee_id: '',
-    };
-  }
-
-  if (extended.error) throw extended.error;
-  throw new Error('No profile found for this account.');
+  return {
+    id: row.id,
+    email: row.email,
+    role: row.role,
+    full_name: row.full_name ?? '',
+    employee_id: row.employee_id ?? '',
+  };
 }
 
 export const PROFILE_FIELDS_MIGRATION_HINT =
-  'Run supabase/add-profile-fields.sql in the Supabase SQL Editor to enable officer names and employee IDs.';
+  'Run supabase/add-profile-fields.sql in the Supabase SQL Editor, then set VITE_ENABLE_PROFILE_FIELDS=true in .env and restart the dev server.';

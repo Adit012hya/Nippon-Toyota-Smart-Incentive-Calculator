@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import { isSupabaseConfigured } from '../lib/supabase';
 import { BrandLogo } from '../components/layout/BrandLogo';
 import { ErrorAlert, LoadingSpinner } from '../components/ui/StatusMessages';
 
@@ -82,7 +83,7 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
-                disabled={signingIn || initializing}
+                disabled={signingIn || initializing || !isSupabaseConfigured}
                 className="login-input"
               />
 
@@ -95,14 +96,14 @@ export function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                disabled={signingIn || initializing}
+                disabled={signingIn || initializing || !isSupabaseConfigured}
                 className="login-input"
               />
 
               <button
                 type="submit"
                 className="btn btn-login-submit"
-                disabled={signingIn || initializing}
+                disabled={signingIn || initializing || !isSupabaseConfigured}
               >
                 {signingIn ? 'Signing in…' : 'Sign in'}
               </button>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useOfficerSalesDraft } from '../../context/OfficerSalesDraftContext';
 import { useCarModels } from '../../hooks/useCarModels';
@@ -45,7 +45,9 @@ export function SalesEntryForm() {
     saveEntries,
   } = useSalesEntries(profile?.id);
 
+  const [pickerOpen, setPickerOpen] = useState(false);
   const availableMonths = getAvailableMonths(year);
+  const hasSelectedModels = selectedModelIds.length > 0;
 
   const selectedModels = useMemo(
     () => models.filter((m) => selectedModelIds.includes(m.id)),
@@ -69,7 +71,7 @@ export function SalesEntryForm() {
 
   const handleSave = async () => {
     if (selectedModelIds.length === 0) {
-      showToast('Select at least one vehicle before saving.');
+      showToast('Select at least one vehicle before saving.', 'error');
       return;
     }
     const ok = await saveEntries(month, year, unitMap, selectedModelIds);
@@ -132,27 +134,46 @@ export function SalesEntryForm() {
           />
         ) : (
           <>
-            <div className="model-select-section model-select-row">
+            <div className="model-select-section">
+              {!pickerOpen && (
+                <div
+                  className={`model-select-actions${hasSelectedModels ? '' : ' model-select-actions-single'}`}
+                >
+                  <button
+                    type="button"
+                    className="btn btn-primary model-action-btn"
+                    onClick={() => setPickerOpen(true)}
+                  >
+                    {hasSelectedModels ? 'Change selection' : 'Select model(s)'}
+                  </button>
+                  {hasSelectedModels && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost model-action-btn"
+                      onClick={handleClear}
+                    >
+                      Clear selection &amp; entries
+                    </button>
+                  )}
+                </div>
+              )}
               <ModelSelector
                 models={models}
                 selectedIds={selectedModelIds}
+                isOpen={pickerOpen}
+                onIsOpenChange={setPickerOpen}
                 onConfirm={confirmModels}
               />
-              {(selectedModelIds.length > 0 || Object.keys(unitMap).length > 0) && (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-clear-draft"
-                  onClick={handleClear}
-                >
-                  Clear selection &amp; entries
-                </button>
-              )}
             </div>
 
             {selectedModels.length > 0 ? (
               <>
                 <h3 className="selected-models-heading">Selected vehicles</h3>
-                <div className="sales-grid">
+                <div className="sales-vehicles">
+                  <div className="sales-vehicles-head">
+                    <span>Vehicle</span>
+                    <span className="sales-col-units">Units sold</span>
+                  </div>
                   {selectedModels.map((model) => (
                     <div key={model.id} className="sales-row">
                       <div className="model-info">
@@ -162,7 +183,7 @@ export function SalesEntryForm() {
                         </span>
                       </div>
                       <label className="units-input-label">
-                        Units sold
+                        <span className="sr-only">Units sold for {model.model_name}</span>
                         <UnitsSoldInput
                           modelId={model.id}
                           value={unitMap[model.id] ?? 0}
@@ -193,9 +214,11 @@ export function SalesEntryForm() {
         )}
       </section>
 
-      {!slabsLoading && slabs.length > 0 && selectedModelIds.length > 0 && (
-        <IncentiveTracker result={incentiveResult} />
-      )}
+      <IncentiveTracker
+        result={incentiveResult}
+        loading={slabsLoading}
+        slabsConfigured={slabs.length > 0}
+      />
     </div>
   );
 }

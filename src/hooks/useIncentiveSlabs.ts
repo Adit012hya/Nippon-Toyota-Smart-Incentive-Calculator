@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { requireSupabase } from '../lib/supabase';
 import type { IncentiveSlab, SlabDraft } from '../types';
 
 export function useIncentiveSlabs() {
@@ -12,7 +12,7 @@ export function useIncentiveSlabs() {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await requireSupabase()
         .from('incentive_slabs')
         .select('*')
         .order('order');
@@ -34,7 +34,7 @@ export function useIncentiveSlabs() {
     setSaving(true);
     setError(null);
     try {
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await requireSupabase()
         .from('incentive_slabs')
         .delete()
         .neq('id', '00000000-0000-0000-0000-000000000000');
@@ -48,7 +48,7 @@ export function useIncentiveSlabs() {
         order,
       }));
 
-      const { error: insertError } = await supabase
+      const { error: insertError } = await requireSupabase()
         .from('incentive_slabs')
         .insert(toInsert);
 

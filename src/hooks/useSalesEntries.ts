@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { requireSupabase } from '../lib/supabase';
 import type { SalesEntry } from '../types';
 
 export function useSalesEntries(officerId: string | undefined) {
@@ -14,7 +14,7 @@ export function useSalesEntries(officerId: string | undefined) {
       setLoading(true);
       setError(null);
       try {
-        const { data, error: fetchError } = await supabase
+        const { data, error: fetchError } = await requireSupabase()
           .from('sales_entries')
           .select('*')
           .eq('officer_id', officerId)
@@ -53,13 +53,13 @@ export function useSalesEntries(officerId: string | undefined) {
         units_sold: unitMap[car_model_id] ?? 0,
       }));
 
-      const { error: upsertError } = await supabase
+      const { error: upsertError } = await requireSupabase()
         .from('sales_entries')
         .upsert(rows, { onConflict: 'officer_id,car_model_id,month,year' });
 
       if (upsertError) throw upsertError;
 
-      const { data: existing, error: fetchError } = await supabase
+      const { data: existing, error: fetchError } = await requireSupabase()
         .from('sales_entries')
         .select('id, car_model_id')
         .eq('officer_id', officerId)
@@ -73,7 +73,7 @@ export function useSalesEntries(officerId: string | undefined) {
         .map((row) => row.id as string);
 
       if (removeIds.length > 0) {
-        const { error: deleteError } = await supabase
+        const { error: deleteError } = await requireSupabase()
           .from('sales_entries')
           .delete()
           .in('id', removeIds);

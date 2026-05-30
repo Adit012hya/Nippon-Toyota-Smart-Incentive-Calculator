@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { requireSupabase } from '../lib/supabase';
 import type { CarModel } from '../types';
 
 export function useCarModels() {
@@ -11,11 +11,10 @@ export function useCarModels() {
     setLoading(true);
     setError(null);
     try {
-      const { data, error: fetchError } = await supabase
+      const { data, error: fetchError } = await requireSupabase()
         .from('car_models')
         .select('*')
-        .order('model_name')
-        .order('variant');
+        .order('model_name', { ascending: true });
 
       if (fetchError) throw fetchError;
       setModels((data as CarModel[]) ?? []);
@@ -35,7 +34,7 @@ export function useCarModels() {
   ): Promise<boolean> => {
     setError(null);
     try {
-      const { error: insertError } = await supabase
+      const { error: insertError } = await requireSupabase()
         .from('car_models')
         .insert(model);
       if (insertError) throw insertError;
@@ -53,7 +52,7 @@ export function useCarModels() {
   ): Promise<boolean> => {
     setError(null);
     try {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await requireSupabase()
         .from('car_models')
         .update(updates)
         .eq('id', id);
@@ -69,7 +68,7 @@ export function useCarModels() {
   const deleteModel = async (id: string): Promise<boolean> => {
     setError(null);
     try {
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await requireSupabase()
         .from('car_models')
         .delete()
         .eq('id', id);

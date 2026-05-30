@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { requireSupabase } from '../lib/supabase';
 import { calculateIncentive, formatCurrency } from '../lib/incentive';
 import { getDisplayName, getEmployeeIdLabel } from '../lib/profileDisplay';
 import type { IncentiveSlab } from '../types';
@@ -35,28 +35,11 @@ function parseProfile(
 }
 
 async function fetchSalesWithProfiles(month: number, year: number) {
-  const extended = await supabase
+  return requireSupabase()
     .from('sales_entries')
-    .select('officer_id, units_sold, profiles ( email, full_name, employee_id )')
+    .select('officer_id, units_sold, profiles ( email )')
     .eq('month', month)
     .eq('year', year);
-
-  if (!extended.error) return extended;
-
-  const msg = extended.error.message.toLowerCase();
-  if (
-    msg.includes('full_name') ||
-    msg.includes('employee_id') ||
-    msg.includes('does not exist')
-  ) {
-    return supabase
-      .from('sales_entries')
-      .select('officer_id, units_sold, profiles ( email )')
-      .eq('month', month)
-      .eq('year', year);
-  }
-
-  return extended;
 }
 
 export function useBestPerformer(month: number, year: number) {
@@ -72,7 +55,7 @@ export function useBestPerformer(month: number, year: number) {
       const [{ data: entries, error: entriesError }, { data: slabs, error: slabsError }] =
         await Promise.all([
           fetchSalesWithProfiles(month, year),
-          supabase.from('incentive_slabs').select('*').order('order'),
+          requireSupabase().from('incentive_slabs').select('*').order('order'),
         ]);
 
       if (entriesError) throw entriesError;

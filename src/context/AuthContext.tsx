@@ -1,5 +1,4 @@
 import {
-  createContext,
   useCallback,
   useEffect,
   useMemo,
@@ -7,23 +6,15 @@ import {
   type ReactNode,
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
-import { fetchProfileById } from '../lib/profiles';
+import {
+  isSupabaseConfigured,
+  requireSupabase,
+  supabaseConfigMessage,
+} from '../lib/supabase';
+import { isMissingColumnError } from '../lib/postgrestErrors';
+import { fetchProfileById, PROFILE_FIELDS_MIGRATION_HINT } from '../lib/profiles';
 import type { Profile, UserRole } from '../types';
-
-interface AuthContextValue {
-  session: Session | null;
-  profile: Profile | null;
-  role: UserRole | null;
-  initializing: boolean;
-  signingIn: boolean;
-  error: string | null;
-  signIn: (email: string, password: string) => Promise<UserRole>;
-  signOut: () => Promise<void>;
-  clearError: () => void;
-}
-
-export const AuthContext = createContext<AuthContextValue | null>(null);
+import { AuthContext } from './auth-context';
 
 function getErrorMessage(err: unknown): string {
   if (typeof err === 'string') return err;
@@ -36,6 +27,10 @@ function getErrorMessage(err: unknown): string {
 }
 
 function profileErrorMessage(err: unknown): string {
+  if (isMissingColumnError(err)) {
+    return PROFILE_FIELDS_MIGRATION_HINT;
+  }
+
   const msg = getErrorMessage(err).toLowerCase();
 
   if (msg.includes('permission denied') || msg.includes('42501')) {
@@ -55,10 +50,6 @@ function profileErrorMessage(err: unknown): string {
   return getErrorMessage(err);
 }
 
-async function fetchProfile(userId: string): Promise<Profile> {
-  return fetchProfileById(userId);
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -67,13 +58,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const clearStaleSession = useCallback(async () => {
-    await supabase.auth.signOut();
+    await requireSupabase().auth.signOut();
     setSession(null);
     setProfile(null);
   }, []);
 
   const loadProfile = useCallback(async (userId: string): Promise<Profile> => {
-    const p = await fetchProfile(userId);
+    const p = await fetchProfileById(userId);
     setProfile(p);
     setError(null);
     return p;
@@ -83,8 +74,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let mounted = true;
 
     async function init() {
+      if (!isSupabaseConfigured) {
+        setError(supabaseConfigMessage);
+        setInitializing(false);
+        return;
+      }
+
       try {
-        const { data, error: sessionError } = await supabase.auth.getSession();
+        const { data, error: sessionError } =
+          await requireSupabase().auth.getSession();
         if (sessionError) throw sessionError;
         if (!mounted) return;
 
@@ -111,16 +109,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     void init();
 
+    if (!isSupabaseConfigured) {
+      return () => {
+        mounted = false;
+      };
+    }
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    } = requireSupabase().auth.onAuthStateChange((_event, newSession) => {
       if (!mounted) return;
 
       setSession(newSession);
       setInitializing(false);
 
       if (newSession?.user) {
-        // Defer async work — async callbacks here can deadlock signInWithPassword
         window.setTimeout(() => {
           if (!mounted) return;
           void loadProfile(newSession.user!.id).catch((err) => {
@@ -145,8 +148,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setError(null);
       setSigningIn(true);
       try {
+        if (!isSupabaseConfigured) {
+          throw new Error(supabaseConfigMessage);
+        }
+
         const { data, error: signInError } =
-          await supabase.auth.signInWithPassword({ email, password });
+          await requireSupabase().auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
 
         if (!data.session || !data.user) {
@@ -162,7 +169,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await clearStaleSession();
           const message = profileErrorMessage(err);
           setError(message);
-          throw new Error(message);
+          throw new Error(message, { cause: err });
         }
 
         return p.role;
@@ -170,7 +177,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const message =
           err instanceof Error ? err.message : 'Sign in failed.';
         setError(message);
-        throw err;
+        if (err instanceof Error) {
+          throw err;
+        }
+        throw new Error(message, { cause: err });
       } finally {
         setSigningIn(false);
       }
@@ -181,7 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     setError(null);
     try {
-      const { error: signOutError } = await supabase.auth.signOut();
+      const { error: signOutError } = await requireSupabase().auth.signOut();
       if (signOutError) throw signOutError;
       setProfile(null);
       setSession(null);

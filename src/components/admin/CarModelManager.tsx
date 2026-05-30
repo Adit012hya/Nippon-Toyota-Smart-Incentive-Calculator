@@ -1,29 +1,26 @@
 import { useState } from 'react';
 import { useCarModels } from '../../hooks/useCarModels';
+import { useToast } from '../../context/ToastContext';
 import type { CarModel } from '../../types';
 import {
   EmptyState,
   ErrorAlert,
   LoadingSpinner,
-  SuccessAlert,
 } from '../ui/StatusMessages';
 
 const emptyForm = { model_name: '', base_suffix: '', variant: '' };
 
 export function CarModelManager() {
+  const { showToast } = useToast();
   const { models, loading, error, addModel, updateModel, deleteModel, fetchModels } =
     useCarModels();
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState(emptyForm);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
 
   const handleAdd = async () => {
-    setActionError(null);
-    setSuccess(null);
     if (!form.model_name.trim() || !form.base_suffix.trim() || !form.variant.trim()) {
-      setActionError('All fields are required.');
+      showToast('All fields are required.', 'error');
       return;
     }
     const ok = await addModel({
@@ -33,7 +30,9 @@ export function CarModelManager() {
     });
     if (ok) {
       setForm(emptyForm);
-      setSuccess('Car model added.');
+      showToast('Car model added.');
+    } else {
+      showToast('Failed to add car model.', 'error');
     }
   };
 
@@ -44,8 +43,6 @@ export function CarModelManager() {
       base_suffix: model.base_suffix,
       variant: model.variant,
     });
-    setActionError(null);
-    setSuccess(null);
   };
 
   const cancelEdit = () => {
@@ -54,8 +51,6 @@ export function CarModelManager() {
   };
 
   const handleSaveEdit = async (id: string) => {
-    setActionError(null);
-    setSuccess(null);
     const ok = await updateModel(id, {
       model_name: editForm.model_name.trim(),
       base_suffix: editForm.base_suffix.trim(),
@@ -63,30 +58,27 @@ export function CarModelManager() {
     });
     if (ok) {
       setEditingId(null);
-      setSuccess('Car model updated.');
+      showToast('Car model updated.');
+    } else {
+      showToast('Failed to update car model.', 'error');
     }
   };
 
   const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`Delete "${name}"? This cannot be undone.`)) return;
-    setActionError(null);
-    setSuccess(null);
     const ok = await deleteModel(id);
-    if (ok) setSuccess('Car model deleted.');
+    if (ok) showToast('Car model deleted.');
+    else showToast('Failed to delete car model.', 'error');
   };
 
   return (
-    <>
-      {(error || actionError) && (
+    <section className="panel model-config-panel">
+      {error && (
         <ErrorAlert
-          message={actionError ?? error ?? ''}
-          onRetry={() => {
-            setActionError(null);
-            void fetchModels();
-          }}
+          message={error}
+          onRetry={() => void fetchModels()}
         />
       )}
-      {success && <SuccessAlert message={success} />}
 
       <div className="add-form-grid">
         <input
@@ -117,91 +109,82 @@ export function CarModelManager() {
           description="Add your first car model using the form above."
         />
       ) : (
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Model name</th>
-                <th>Base suffix</th>
-                <th>Variant</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {models.map((model) => (
-                <tr key={model.id}>
-                  {editingId === model.id ? (
-                    <>
-                      <td>
-                        <input
-                          value={editForm.model_name}
-                          onChange={(e) =>
-                            setEditForm({ ...editForm, model_name: e.target.value })
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          value={editForm.base_suffix}
-                          onChange={(e) =>
-                            setEditForm({ ...editForm, base_suffix: e.target.value })
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          value={editForm.variant}
-                          onChange={(e) =>
-                            setEditForm({ ...editForm, variant: e.target.value })
-                          }
-                        />
-                      </td>
-                      <td className="actions-cell">
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm"
-                          onClick={() => void handleSaveEdit(model.id)}
-                        >
-                          Save
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          onClick={cancelEdit}
-                        >
-                          Cancel
-                        </button>
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td>{model.model_name}</td>
-                      <td>{model.base_suffix}</td>
-                      <td>{model.variant}</td>
-                      <td className="actions-cell">
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => startEdit(model)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-danger btn-sm"
-                          onClick={() => void handleDelete(model.id, model.model_name)}
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="model-records">
+          <div className="model-records-head">
+            <span>Model name</span>
+            <span>Suffix</span>
+            <span>Variant</span>
+            <span>Actions</span>
+          </div>
+          {models.map((model) => (
+            <div key={model.id} className="model-record-row">
+              {editingId === model.id ? (
+                <>
+                  <input
+                    value={editForm.model_name}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, model_name: e.target.value })
+                    }
+                    aria-label="Model name"
+                  />
+                  <input
+                    value={editForm.base_suffix}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, base_suffix: e.target.value })
+                    }
+                    aria-label="Base suffix"
+                  />
+                  <input
+                    value={editForm.variant}
+                    onChange={(e) =>
+                      setEditForm({ ...editForm, variant: e.target.value })
+                    }
+                    aria-label="Variant"
+                  />
+                  <div className="model-record-actions">
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm"
+                      onClick={() => void handleSaveEdit(model.id)}
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={cancelEdit}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="model-record-name">{model.model_name}</span>
+                  <span className="model-record-suffix">{model.base_suffix}</span>
+                  <span className="model-record-variant">{model.variant}</span>
+                  <div className="model-record-actions">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => startEdit(model)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-danger btn-sm"
+                      onClick={() => void handleDelete(model.id, model.model_name)}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
         </div>
       )}
-    </>
+    </section>
   );
 }

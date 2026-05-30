@@ -1,6 +1,5 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { ToastProvider } from '../../context/ToastContext';
 import { OfficerSalesDraftProvider } from '../../context/OfficerSalesDraftContext';
 import { AppHeader } from './AppHeader';
 import { PortalNav } from './PortalNav';
@@ -11,7 +10,7 @@ interface Props {
 }
 
 export function ProtectedRoute({ allowedRole }: Props) {
-  const { session, profile, role, initializing, signOut } = useAuth();
+  const { session, profile, role, initializing } = useAuth();
 
   if (initializing) {
     return (
@@ -32,7 +31,7 @@ export function ProtectedRoute({ allowedRole }: Props) {
 
   const shell = (
     <div className="app-shell">
-      <AppHeader profile={profile} onSignOut={() => void signOut()} />
+      <AppHeader />
       <div className="app-body">
         <PortalNav role={profile.role} profile={profile} />
         <main className="app-main">
@@ -43,11 +42,7 @@ export function ProtectedRoute({ allowedRole }: Props) {
   );
 
   if (allowedRole === 'sales_officer') {
-    return (
-      <ToastProvider>
-        <OfficerSalesDraftProvider>{shell}</OfficerSalesDraftProvider>
-      </ToastProvider>
-    );
+    return <OfficerSalesDraftProvider>{shell}</OfficerSalesDraftProvider>;
   }
 
   return shell;

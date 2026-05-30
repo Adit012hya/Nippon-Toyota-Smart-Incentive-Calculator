@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
+import { requireSupabase } from '../lib/supabase';
 import { calculateIncentive, formatCurrency } from '../lib/incentive';
 import type { CarModel, IncentiveSlab, SalesEntry } from '../types';
 
@@ -36,11 +36,11 @@ export function useSalesHistory(officerId: string | undefined) {
     try {
       const [{ data: entries, error: entriesError }, { data: slabs, error: slabsError }] =
         await Promise.all([
-          supabase
+          requireSupabase()
             .from('sales_entries')
             .select('month, year, units_sold')
             .eq('officer_id', officerId),
-          supabase.from('incentive_slabs').select('*').order('order'),
+          requireSupabase().from('incentive_slabs').select('*').order('order'),
         ]);
 
       if (entriesError) throw entriesError;
@@ -85,14 +85,14 @@ export function useSalesHistory(officerId: string | undefined) {
       try {
         const [{ data: entries, error: entriesError }, { data: models, error: modelsError }] =
           await Promise.all([
-            supabase
+            requireSupabase()
               .from('sales_entries')
               .select('*')
               .eq('officer_id', officerId)
               .eq('month', month)
               .eq('year', year)
               .gt('units_sold', 0),
-            supabase.from('car_models').select('*'),
+            requireSupabase().from('car_models').select('*'),
           ]);
 
         if (entriesError) throw entriesError;
@@ -108,7 +108,7 @@ export function useSalesHistory(officerId: string | undefined) {
         }));
 
         const totalUnits = enriched.reduce((s, e) => s + e.units_sold, 0);
-        const { data: slabs } = await supabase
+        const { data: slabs } = await requireSupabase()
           .from('incentive_slabs')
           .select('*')
           .order('order');
