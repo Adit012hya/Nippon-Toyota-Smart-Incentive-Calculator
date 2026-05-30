@@ -5,6 +5,13 @@ import { useIncentiveSlabs } from '../../hooks/useIncentiveSlabs';
 import { useSalesEntries } from '../../hooks/useSalesEntries';
 import { useToast } from '../../context/ToastContext';
 import { calculateIncentive } from '../../lib/incentive';
+import {
+  clampMonthForYear,
+  formatPeriod,
+  getAvailableMonths,
+  getAvailableYears,
+  getCurrentPeriod,
+} from '../../lib/salesPeriod';
 import { ModelSelector } from './ModelSelector';
 import { IncentiveTracker } from './IncentiveTracker';
 import {
@@ -13,14 +20,7 @@ import {
   LoadingSpinner,
 } from '../ui/StatusMessages';
 
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-
-const currentDate = new Date();
-const defaultMonth = currentDate.getMonth() + 1;
-const defaultYear = currentDate.getFullYear();
+const { year: defaultYear, month: defaultMonth } = getCurrentPeriod();
 
 export function SalesEntryForm() {
   const { profile } = useAuth();
@@ -41,11 +41,8 @@ export function SalesEntryForm() {
   const [selectedModelIds, setSelectedModelIds] = useState<string[]>([]);
   const [unitMap, setUnitMap] = useState<Record<string, number>>({});
 
-  const years = useMemo(() => {
-    const list: number[] = [];
-    for (let y = defaultYear - 2; y <= defaultYear + 1; y++) list.push(y);
-    return list;
-  }, []);
+  const years = getAvailableYears();
+  const availableMonths = getAvailableMonths(year);
 
   const selectedModels = useMemo(
     () => models.filter((m) => selectedModelIds.includes(m.id)),
@@ -53,10 +50,18 @@ export function SalesEntryForm() {
   );
 
   useEffect(() => {
+    setMonth((current) => clampMonthForYear(current, year));
+  }, [year]);
+
+  useEffect(() => {
     setSelectedModelIds([]);
     setUnitMap({});
     void fetchEntries(month, year);
   }, [month, year, fetchEntries]);
+
+  const handleYearChange = (newYear: number) => {
+    setYear(newYear);
+  };
 
   const handleModelsConfirm = (ids: string[]) => {
     setSelectedModelIds(ids);
@@ -93,7 +98,7 @@ export function SalesEntryForm() {
     }
     const ok = await saveEntries(month, year, unitMap, selectedModelIds);
     if (ok) {
-      showToast(`Sales for ${MONTHS[month - 1]} ${year} saved successfully.`);
+      showToast(`Sales for ${formatPeriod(month, year)} saved successfully.`);
     }
   };
 
@@ -115,9 +120,9 @@ export function SalesEntryForm() {
             value={month}
             onChange={(e) => setMonth(parseInt(e.target.value, 10))}
           >
-            {MONTHS.map((name, i) => (
-              <option key={name} value={i + 1}>
-                {name}
+            {availableMonths.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
               </option>
             ))}
           </select>
@@ -125,8 +130,9 @@ export function SalesEntryForm() {
           <label htmlFor="year-select">Year</label>
           <select
             id="year-select"
+            className="year-select-scroll"
             value={year}
-            onChange={(e) => setYear(parseInt(e.target.value, 10))}
+            onChange={(e) => handleYearChange(parseInt(e.target.value, 10))}
           >
             {years.map((y) => (
               <option key={y} value={y}>
@@ -189,7 +195,7 @@ export function SalesEntryForm() {
                     onClick={() => void handleSave()}
                     disabled={saving}
                   >
-                    {saving ? 'Saving…' : `Save ${MONTHS[month - 1]} ${year}`}
+                    {saving ? 'Saving…' : `Save ${formatPeriod(month, year)}`}
                   </button>
                 </div>
               </>

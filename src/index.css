@@ -320,6 +320,18 @@ input:focus, select:focus {
   min-width: 140px;
 }
 
+.month-picker select.year-select-scroll {
+  min-width: 100px;
+  max-height: 12rem;
+}
+
+/* Scrollable year list on browsers that support select sizing */
+@supports (appearance: base-select) {
+  .month-picker select.year-select-scroll {
+    overflow-y: auto;
+  }
+}
+
 /* ── Buttons ────────────────────────────────────────────── */
 
 .btn {
@@ -945,6 +957,23 @@ input:focus, select:focus {
 
 .model-picker-header h3 {
   font-size: 0.95rem;
+}
+
+.model-picker-search {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.model-picker-search input {
+  width: 100%;
+}
+
+.model-picker-empty {
+  padding: 1.25rem;
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 0.9rem;
 }
 
 .model-picker-body {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { CarModel } from '../../types';
 
 interface Props {
@@ -7,20 +7,35 @@ interface Props {
   onConfirm: (ids: string[]) => void;
 }
 
+function matchesSearch(model: CarModel, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const haystack = `${model.model_name} ${model.base_suffix} ${model.variant}`.toLowerCase();
+  return haystack.includes(q);
+}
+
 export function ModelSelector({ models, selectedIds, onConfirm }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [pending, setPending] = useState<Set<string>>(new Set());
+  const [search, setSearch] = useState('');
 
   const hasSelection = selectedIds.length > 0;
 
+  const filteredModels = useMemo(
+    () => models.filter((m) => matchesSearch(m, search)),
+    [models, search]
+  );
+
   const openPicker = () => {
     setPending(new Set(hasSelection ? selectedIds : []));
+    setSearch('');
     setIsOpen(true);
   };
 
   const closePicker = () => {
     setIsOpen(false);
     setPending(new Set());
+    setSearch('');
   };
 
   const toggle = (id: string) => {
@@ -58,33 +73,44 @@ export function ModelSelector({ models, selectedIds, onConfirm }: Props) {
         </button>
       </div>
 
+      <div className="model-picker-search">
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by model, suffix, or variant…"
+          aria-label="Search vehicles"
+          autoFocus
+        />
+      </div>
+
       <div className="model-picker-body">
         <ul className="model-picker-list" role="listbox" aria-label="Available vehicles">
-          {models.map((model) => (
-            <li key={model.id}>
-              <label className="model-picker-option">
-                <input
-                  type="checkbox"
-                  checked={pending.has(model.id)}
-                  onChange={() => toggle(model.id)}
-                />
-                <span className="model-picker-option-text">
-                  <strong>{model.model_name}</strong>
-                  <span className="model-meta">
-                    {model.base_suffix} · {model.variant}
+          {filteredModels.length === 0 ? (
+            <li className="model-picker-empty">No vehicles match your search.</li>
+          ) : (
+            filteredModels.map((model) => (
+              <li key={model.id}>
+                <label className="model-picker-option">
+                  <input
+                    type="checkbox"
+                    checked={pending.has(model.id)}
+                    onChange={() => toggle(model.id)}
+                  />
+                  <span className="model-picker-option-text">
+                    <strong>{model.model_name}</strong>
+                    <span className="model-meta">
+                      {model.base_suffix} · {model.variant}
+                    </span>
                   </span>
-                </span>
-              </label>
-            </li>
-          ))}
+                </label>
+              </li>
+            ))
+          )}
         </ul>
 
         <div className="model-picker-actions">
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={handleConfirm}
-          >
+          <button type="button" className="btn btn-primary" onClick={handleConfirm}>
             OK
           </button>
           <span className="model-picker-count">{pending.size} selected</span>
